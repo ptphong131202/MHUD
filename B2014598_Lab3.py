@@ -33,7 +33,7 @@ clf_Gini.fit(X_train, y_train)
 
 # Dự đoán nhãn cho các phần tử trong tập kiểm tra
 y_pred = clf_Gini.predict(x_test)
-""" print(y_pred) """
+print(y_pred)
 
 y2_pred = clf_Gini.predict([[4, 4, 3, 3]])
 """ print(y2_pred)"""
@@ -60,7 +60,7 @@ for train_index, test_index in kf.split(dulieu):
     X_train, X_test = dulieu.iloc[train_index, ], dulieu.iloc[test_index, ]
     y_train, y_test = dulieu.iloc[train_index, ], dulieu.iloc[test_index, ]
     # kiem tra X_test hold_out X_test K F
-    """ print("X_test: ", X_test, "x_test: ", x_test) """
+    print("X_test: ", X_test, "x_test: ", x_test)
 
 # ---------------------------------------------------------------------
 
@@ -73,7 +73,7 @@ regressor.fit(X3_train, Y3_train)
 y3_pred = regressor.predict(X3_test)
 
 err = mean_absolute_error(Y3_test, y3_pred)
-print(err)
+""" print(err) """
 
 a = np.sqrt(err)
-print(a)
+""" print(a) """
