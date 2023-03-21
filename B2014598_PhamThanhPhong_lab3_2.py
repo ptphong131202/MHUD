@@ -7,33 +7,29 @@ from sklearn.linear_model import LinearRegression
 # Tập dữ liệu
 X = np.array([150, 147, 150, 153, 158, 163, 165,
              168, 170, 173, 175, 178, 180, 183])
-Y = np.array([50, 49, 50, 51, 54, 58, 59, 60, 62, 63, 64, 66, 67, 68])
+Y = np.array([90, 49, 50, 51, 54, 58, 59, 60, 62, 63, 64, 66, 67, 68])
 
 # Tính các giá trị cần thiết cho đường hồi quy
 n = len(X)
-mean_X = np.mean(X)  # trung bình tập x
-mean_Y = np.mean(Y)  # trung bình tap y
-# tổng bình phương độ lệch chéo giữa X và Y, tính bằng cách lấy tổng của (X[i]-mean_X)*(Y[i]-mean_Y)
+mean_X = np.mean(X)
+mean_Y = np.mean(Y)
 SS_xy = np.sum(X*Y) - n*mean_X*mean_Y
-# tổng bình phương độ lệch của X, tính bằng cách lấy tổng của (X[i]-mean_X)^2
 SS_xx = np.sum(X*X) - n*mean_X*mean_X
-theta1 = SS_xy / SS_xx
-theta0 = mean_Y - theta1*mean_X
+b_1 = SS_xy / SS_xx
+b_0 = mean_Y - b_1*mean_X
+
+# Vẽ biểu đồ scatter
+plt.scatter(X, Y)
 
 # Vẽ đường hồi quy
 x_plot = np.linspace(np.min(X), np.max(X), 100)
-y_plot = theta0 + theta1*x_plot
+y_plot = b_0 + b_1 * x_plot
 plt.plot(x_plot, y_plot, color='red')
 
-# Vẽ dữ liệu
-plt.scatter(X, Y)
-
-# Đặt tiêu đề và tên trục
-plt.title('Biểu đồ phân tán và đường hồi quy')
+# Đặt tên cho trục x và trục y
 plt.xlabel('Chiều cao (cm)')
 plt.ylabel('Cân nặng (kg)')
 
-# Hiển thị biểu đồ
 plt.show()
 
 
