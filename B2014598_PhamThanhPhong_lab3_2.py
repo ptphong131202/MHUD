@@ -1,9 +1,13 @@
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import r2_score
+from sklearn.ensemble import RandomForestRegressor
 import seaborn as sns
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.linear_model import LinearRegression
-
+from sklearn.model_selection import train_test_split
+""" 
 # Tập dữ liệu
 X = np.array([150, 147, 150, 153, 158, 163, 165,
              168, 170, 173, 175, 178, 180, 183])
@@ -31,7 +35,7 @@ plt.xlabel('Chiều cao (cm)')
 plt.ylabel('Cân nặng (kg)')
 
 plt.show()
-
+ """
 
 """ 
 # Đọc dữ liệu từ tập tin
@@ -56,3 +60,42 @@ x_line = np.linspace(1, 15, 100)
 y_line = slope * x_line + intercept
 plt.plot(x_line, y_line, color='red')
 plt.show() """
+
+
+# Load data
+wine_data = pd.read_csv('winequality-white.csv')
+print(wine_data)
+
+X = wine_data.iloc[:, 0:11]
+Y = wine_data.quality
+X_train, X_test, y_train, y_test = train_test_split(
+    X, Y, test_size=0.3, random_state=42)
+
+
+# Train a random forest regression model
+rf = RandomForestRegressor(n_estimators=100, random_state=42)
+rf.fit(X_train, y_train)
+
+
+# Evaluate the model on the test set
+y_pred = rf.predict(X_test)
+r2_score(y_test, y_pred)
+
+
+# Define the parameter grid to search
+param_grid = {
+    'n_estimators': [50, 100, 200],
+    'max_depth': [5, 10, 20, None],
+    'min_samples_split': [2, 5, 10],
+    'min_samples_leaf': [1, 2, 4]
+}
+
+# Perform a grid search to find the best parameters
+rf = RandomForestRegressor(random_state=42)
+grid_search = GridSearchCV(
+    estimator=rf, param_grid=param_grid, cv=5, n_jobs=-1)
+grid_search.fit(X_train, y_train)
+
+# Evaluate the best model on the test set
+y_pred = grid_search.predict(X_test)
+print(r2_score(y_test, y_pred))
