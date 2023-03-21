@@ -1,60 +1,97 @@
-import pygame
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import confusion_matrix
+import pandas as pd
 
-# Khởi tạo Pygame
-pygame.init()
 
-# Đặt kích thước cửa sổ trò chơi
-width = 1000
-height = 500
-screen = pygame.display.set_mode((width, height))
+class ClassifierGUI(QMainWindow):
 
-# Thiết lập tiêu đề cửa sổ trò chơi
-pygame.display.set_caption("Project nhóm 15")
+    def __init__(self):
+        super().__init__()
 
-# Tạo font
-font1 = pygame.font.Font(None, 40)
-font2 = pygame.font.Font(None, 20)
-# Vòng lặp chính của trò chơi
+        # Load data
+        url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/soybean/soybean-large.data'
+        names = ['date', 'plant-stand', 'precip', 'temp', 'hail', 'crop-hist', 'area-damaged', 'severity', 'seed-tmt', 'germination', 'plant-growth', 'leaves', 'leafspots-halo', 'leafspots-marg', 'leafspot-size', 'leaf-shread', 'leaf-malf', 'leaf-mild',
+                 'stem', 'lodging', 'stem-cankers', 'canker-lesion', 'fruiting-bodies', 'external decay', 'mycelium', 'int-discolor', 'sclerotia', 'fruit-pods', 'fruit spots', 'seed', 'mold-growth', 'seed-discolor', 'seed-size', 'shriveling', 'roots']
+        data = pd.read_csv(url, names=names)
 
-input_box = pygame.Rect(100, 120, 200, 32)
-text = ''
-running = True
-while running:
-    # Xử lý các sự kiện
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_RETURN:
-                print(text)
-                text = ''
-            elif event.key == pygame.K_BACKSPACE:
-                text = text[:-1]
-            else:
-                text += event.unicode
+        # Xóa cột 'date' vì nó không có tác động đến kết quả dự đoán
+        data = data.drop(['date'], axis=1)
 
-    # Cập nhật trạng thái của trò chơi
+        # Chuyển đổi các giá trị trong các cột sang kiểu số nguyên
+        data = data.apply(lambda x: pd.factorize(x)[0])
 
-    # Vẽ đối tượng lên màn hình
-    screen.fill((255, 255, 255))  # Màu nền trắng
-    # Hiển thị chữ giữa màn hình
-    name = font1.render("Soybean large data set", True, "red")  # Vẽ chữ
-    screen.blit(name, (width/2 - name.get_width() / 2, 10))
-    text_knn = font2.render(
-        "1. K-Nearest Neighbors (KNN)", True, "black")  # Vẽ chữ
-    screen.blit(text_knn, (16, 40))
-    text_bayes = font2.render(
-        "2. Naive Bayes", True, "black")  # Vẽ chữ
-    screen.blit(text_bayes, (16, 60))
-    text_tree = font2.render("3.Decision Tree", True, "black")  # Vẽ chữ
-    screen.blit(text_tree, (16, 80))
+        # Chia làm 10 phần rồi xáo trộn
+        self.X = data.drop(['roots'], axis=1)
+        self.y = data['roots']
 
-    text_url = font2.render("Nhập url của tập dữ liệu:", True, "black")
-    screen.blit(text_url, (15, 100))
-    pygame.draw.rect(screen, (0, 0, 0), input_box, 2)
-    text_surface = font2.render(text, True, (0, 0, 0))
-    screen.blit(text_surface, (input_box.x + 5, input_box.y + 10))
-    pygame.display.flip()
+        # Split data into training and testing sets
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
+            self.X, self.y, test_size=0.2)
 
-# Kết thúc Pygame
-pygame.quit()
+        # Create KNN classifier
+        self.knn = KNeighborsClassifier()
+
+        # Create Naive Bayes classifier
+        self.nb = GaussianNB()
+
+        # Create Decision Tree classifier
+        self.dt = DecisionTreeClassifier()
+
+        # Set up main window
+        self.setWindowTitle("Classifier Results")
+        self.resize(800, 600)
+        self.knn_button = QPushButton("KNN", self)
+        self.knn_button.move(10, 10)
+        self.knn_button.clicked.connect(self.run_knn)
+
+        self.nb_button = QPushButton("Naive Bayes", self)
+        self.nb_button.move(10, 40)
+        self.nb_button.clicked.connect(self.run_nb)
+
+        self.dt_button = QPushButton("Decision Tree", self)
+        self.dt_button.move(10, 70)
+        self.dt_button.clicked.connect(self.run_dt)
+
+        self.result_label = QLabel(self)
+        self.result_label.move(10, 100)
+        label_size = self.result_label.sizeHint()
+        self.result_label.resize(label_size)
+
+    def run_knn(self):
+        model = self.knn.fit(self.X_train, self.y_train)
+        y_pred = model.predict(self.X_test)
+        accuracy = accuracy_score(self.y_test, y_pred)
+        matrix = confusion_matrix(self.y_test, y_pred)
+        self.result_label.setText(
+            f"Confusion matrix: \n{matrix}\nAccuracy: {accuracy:.2f}")
+        self.result_label.adjustSize()
+
+    def run_nb(self):
+        model = self.nb.fit(self.X_train, self.y_train)
+        y_pred = model.predict(self.X_test)
+        accuracy = accuracy_score(self.y_test, y_pred)
+        matrix = confusion_matrix(self.y_test, y_pred)
+        self.result_label.setText(
+            f"Confusion matrix: \n{matrix}\nAccuracy: {accuracy:.2f}")
+        self.result_label.adjustSize()
+
+    def run_dt(self):
+        model = self.dt.fit(self.X_train, self.y_train)
+        y_pred = model.predict(self.X_test)
+        accuracy = accuracy_score(self.y_test, y_pred)
+        matrix = confusion_matrix(self.y_test, y_pred)
+        self.result_label.setText(
+            f"Confusion matrix: \n{matrix}\nAccuracy: {accuracy:.2f}")
+        self.result_label.adjustSize()
+
+
+if __name__ == '__main__':
+    app = QApplication([])
+    window = ClassifierGUI()
+    window.show()
+    app.exec_()

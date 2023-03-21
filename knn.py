@@ -1,136 +1,97 @@
-import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QLabel, QComboBox, QPushButton
-import pandas as pd
-# import thư viện GaussianNB dể huấn luyện mô hình theo bayes
-from sklearn.naive_bayes import GaussianNB
-# import thư viện KNeighborsClassifier để huấn luyện mô hình theo KNN
-from sklearn.neighbors import KNeighborsClassifier
-# import thư viện accuracy_score tính trung bình tổng thể
-from sklearn.metrics import accuracy_score
-# import thư viện confusion_matrix để hiển thị độ chính xác mô hình
-from sklearn.metrics import confusion_matrix
-# import thư viện DecisionTreeClassifier tạo cây quyết định
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.model_selection import KFold  # import thư viện K flod
+from PyQt5.QtWidgets import QApplication, QMainWindow, QPushButton, QLabel
+from sklearn.datasets import load_iris
 from sklearn.model_selection import train_test_split
-import numpy as np  # import thư viện numpy
-# đọc file winequality-white.csv lưu vào biến data
-url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/soybean/soybean-large.data'
-names = ['date', 'plant-stand', 'precip', 'temp', 'hail', 'crop-hist', 'area-damaged', 'severity', 'seed-tmt', 'germination', 'plant-growth', 'leaves', 'leafspots-halo', 'leafspots-marg', 'leafspot-size', 'leaf-shread', 'leaf-malf', 'leaf-mild',
-         'stem', 'lodging', 'stem-cankers', 'canker-lesion', 'fruiting-bodies', 'external decay', 'mycelium', 'int-discolor', 'sclerotia', 'fruit-pods', 'fruit spots', 'seed', 'mold-growth', 'seed-discolor', 'seed-size', 'shriveling', 'roots']
-data = pd.read_csv(url, names=names)
-
-# Xóa cột 'date' vì nó không có tác động đến kết quả dự đoán
-data = data.drop(['date'], axis=1)
-
-# Chuyển đổi các giá trị trong các cột sang kiểu số nguyên
-data = data.apply(lambda x: pd.factorize(x)[0])
-
-kf = KFold(n_splits=10, shuffle=True, random_state=3000)
-x = data.drop(['roots'], axis=1)
-y = data['roots']
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.metrics import accuracy_score
+import pandas as pd
+from sklearn.metrics import confusion_matrix
 
 
-# Tree
-tree = DecisionTreeClassifier(
-    criterion="entropy", random_state=10, max_depth=7, min_samples_leaf=5)
-# KNN
-knn = KNeighborsClassifier(n_neighbors=5)
-# Bayer
-bayer = GaussianNB()
+class ClassifierGUI(QMainWindow):
 
-# Huan luyen
-i = 0
-total_tree = 0
-total_knn = 0
-total_bayer = 0
-a = []
-b = []
-c = []
-
-for train_index, test_index in kf.split(x):
-    """ for i in range(0, 10): """
-    """x_train, x_test, y_train, y_test = train_test_split("""
-    """x, y, test_size=1/3, random_state=5) """
-    x_train, x_test = x.iloc[train_index,], x.iloc[test_index,]
-    y_train, y_test = y.iloc[train_index], y.iloc[test_index]
-    i = i+1
-    tree.fit(x_train, y_train)
-    knn.fit(x_train, y_train)
-    bayer.fit(x_train, y_train)
-
-    # Du doan nhan
-    y_pred_tree = tree.predict(x_test)
-    y_pred_knn = knn.predict(x_test)
-    y_pred_bayer = bayer.predict(x_test)
-
-    # Tinh do chinh xac tong the
-    a.append(accuracy_score(y_test, y_pred_knn)*100)
-    b.append(accuracy_score(y_test, y_pred_bayer)*100)
-    c.append(accuracy_score(y_test, y_pred_tree)*100)
-
-    d = confusion_matrix(y_test, y_pred_knn)
-    e = confusion_matrix(y_test, y_pred_bayer)
-    f = confusion_matrix(y_test, y_pred_tree)
-
-    total_tree += accuracy_score(y_test, y_pred_tree)*100
-    total_knn += accuracy_score(y_test, y_pred_knn)*100
-    total_bayer += accuracy_score(y_test, y_pred_bayer)*100
-
-a1 = np.array(a).reshape(-1, 1)
-b2 = np.array(b).reshape(-1, 1)
-c3 = np.array(c).reshape(-1, 1)
-
-
-class MainWindow(QWidget):
     def __init__(self):
         super().__init__()
 
-        # Tạo các đối tượng trên giao diện
-        self.label_algorithm = QLabel('Select an algorithm:', self)
-        self.combobox_algorithm = QComboBox(self)
-        self.combobox_algorithm.addItem('KNN')
-        self.combobox_algorithm.addItem('Naive Bayes')
-        self.combobox_algorithm.addItem('Decision Tree')
-        self.button_run = QPushButton('Run', self)
-        self.label_result = QLabel('', self)
+        # Load data
+        url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/soybean/soybean-large.data'
+        names = ['date', 'plant-stand', 'precip', 'temp', 'hail', 'crop-hist', 'area-damaged', 'severity', 'seed-tmt', 'germination', 'plant-growth', 'leaves', 'leafspots-halo', 'leafspots-marg', 'leafspot-size', 'leaf-shread', 'leaf-malf', 'leaf-mild',
+                 'stem', 'lodging', 'stem-cankers', 'canker-lesion', 'fruiting-bodies', 'external decay', 'mycelium', 'int-discolor', 'sclerotia', 'fruit-pods', 'fruit spots', 'seed', 'mold-growth', 'seed-discolor', 'seed-size', 'shriveling', 'roots']
+        data = pd.read_csv(url, names=names)
 
-        # Đặt vị trí và kích thước cho các đối tượng trên giao diện
-        self.label_algorithm.setGeometry(20, 20, 120, 30)
-        self.combobox_algorithm.setGeometry(150, 20, 120, 30)
-        self.button_run.setGeometry(150, 70, 120, 30)
-        self.label_result.setGeometry(20, 80, 500, 600)
+        # Xóa cột 'date' vì nó không có tác động đến kết quả dự đoán
+        data = data.drop(['date'], axis=1)
 
-        # Kết nối sự kiện click của nút Run
-        self.button_run.clicked.connect(self.run_algorithm)
+        # Chuyển đổi các giá trị trong các cột sang kiểu số nguyên
+        data = data.apply(lambda x: pd.factorize(x)[0])
 
-        # Thiết lập kích thước cửa sổ và hiển thị giao diện
-        self.setGeometry(100, 100, 600, 700)
-        self.setWindowTitle('Classification Algorithms')
-        self.show()
+        # Chia làm 10 phần rồi xáo trộn
+        self.X = data.drop(['roots'], axis=1)
+        self.y = data['roots']
 
-    def run_algorithm(self):
-        # Lấy giá trị của thuật toán từ combobox
-        algorithm = self.combobox_algorithm.currentText()
+        # Split data into training and testing sets
+        self.X_train, self.X_test, self.y_train, self.y_test = train_test_split(
+            self.X, self.y, test_size=0.2)
 
-        # Chạy thuật toán và lấy kết quả
-        result = self.run_algorithm_function(algorithm)
+        # Create KNN classifier
+        self.knn = KNeighborsClassifier()
 
-        # Hiển thị kết quả trên label
-        self.label_result.setText(f'{algorithm} result:\n {result},\n {d}')
+        # Create Naive Bayes classifier
+        self.nb = GaussianNB()
 
-    def run_algorithm_function(self, algorithm):
-        # Thực hiện thuật toán và trả về kết quả ở đây
-        # Ví dụ: Trả về kết quả là "accuracy: 0.85"
-        if algorithm == 'KNN':
-            return a1
-        elif algorithm == 'Naive Bayes':
-            return b2
-        elif algorithm == 'Decision Tree':
-            return c3
+        # Create Decision Tree classifier
+        self.dt = DecisionTreeClassifier()
+
+        # Set up main window
+        self.setWindowTitle("Classifier Results")
+        self.resize(500, 500)
+        self.knn_button = QPushButton("KNN", self)
+        self.knn_button.move(10, 10)
+        self.knn_button.clicked.connect(self.run_knn)
+        self.nb_button = QPushButton("Naive Bayes", self)
+        self.nb_button.move(10, 40)
+        self.nb_button.clicked.connect(self.run_nb)
+
+        self.dt_button = QPushButton("Decision Tree", self)
+        self.dt_button.move(10, 70)
+        self.dt_button.clicked.connect(self.run_dt)
+
+        self.result_label = QLabel(self)
+        self.result_label.move(10, 100)
+        label_size = self.result_label.sizeHint()
+        self.result_label.resize(label_size)
+
+    def run_knn(self):
+        model = self.knn.fit(self.X_train, self.y_train)
+        y_pred = model.predict(self.X_test)
+        accuracy = accuracy_score(self.y_test, y_pred)
+        matrix = confusion_matrix(self.y_test, y_pred)
+        self.result_label.setText(
+            f"Du doan: {y_pred}\nconfusion_matrix: \n {matrix}\nAccuracy: {accuracy:.2f}")
+        self.result_label.adjustSize()
+
+    def run_nb(self):
+        model = self.nb.fit(self.X_train, self.y_train)
+        y_pred = model.predict(self.X_test)
+        accuracy = accuracy_score(self.y_test, y_pred)
+        matrix = confusion_matrix(self.y_test, y_pred)
+        self.result_label.setText(
+            f"Du doan: {y_pred}\nconfusion_matrix: \n {matrix}\nAccuracy: {accuracy:.2f}")
+        self.result_label.adjustSize()
+
+    def run_dt(self):
+        model = self.dt.fit(self.X_train, self.y_train)
+        y_pred = model.predict(self.X_test)
+        accuracy = accuracy_score(self.y_test, y_pred)
+        matrix = confusion_matrix(self.y_test, y_pred)
+        self.result_label.setText(
+            f"Du doan: {y_pred}\nconfusion_matrix: \n {matrix}\nAccuracy: {accuracy:.2f}")
+        self.result_label.adjustSize()
 
 
 if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = MainWindow()
-    sys.exit(app.exec_())
+    app = QApplication([])
+    window = ClassifierGUI()
+    window.show()
+    app.exec_()

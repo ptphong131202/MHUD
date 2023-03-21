@@ -1,3 +1,6 @@
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import BaggingRegressor
+from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error
 import sklearn
 # module tạo và huấn luyện mô hình hồi quy tuyến tính
@@ -58,3 +61,18 @@ print("Binh phuong trung binh loi:", err)
 rmse_error = np.sqrt(err)
 # làm tròn phương sai
 print("Phuong sai: ", round(rmse_error, 3))
+
+
+print("########################################")
+X_train, X_test, Y_train, Y_test = train_test_split(
+    x, y, test_size=1/3, random_state=100)
+
+
+tree = DecisionTreeRegressor(random_state=0)
+
+bagging_tree = BaggingRegressor(
+    base_estimator=tree, n_estimators=10, random_state=42)
+bagging_tree.fit(X_train, Y_train)
+y_pred = bagging_tree.predict(X_test)
+err = mean_squared_error(Y_test, y_pred)
+print(err)
