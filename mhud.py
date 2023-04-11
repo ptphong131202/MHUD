@@ -1,3 +1,4 @@
+from sklearn.feature_selection import mutual_info_classif
 import numpy as np
 import pandas as pd
 from sklearn.metrics import (accuracy_score, classification_report,
@@ -6,6 +7,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import GaussianNB
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.tree import DecisionTreeClassifier
+import matplotlib.pyplot as plt
+from sklearn.metrics import f1_score
+from sklearn.metrics import pairwise_distances
+from sklearn.tree import plot_tree
+
 
 # đọc file từ 'https://archive.ics.uci.edu/ml/machine-learning-databases/soybean/soybean-large.data'
 url = 'https://archive.ics.uci.edu/ml/machine-learning-databases/soybean/soybean-large.data'
@@ -14,26 +20,45 @@ names = ['date', 'plant-stand', 'precip', 'temp', 'hail', 'crop-hist', 'area-dam
 df = pd.read_csv(url, names=names)
 
 print("\n\tTAP DU LIEU TRUOC KHI CHUYEN DOI\n")
+df = df.drop(['date'], axis=1)
 print(df)
 
-# Xóa cột 'date' vì nó không có tác động đến kết quả dự đoán
-df = df.drop(['date'], axis=1)
 
-# Chuyển đổi các giá trị trong các cột sang kiểu số nguyên
-df = df.apply(lambda x: pd.factorize(x)[0])
+# Loop through each column in the dataset
+for column in df.columns:
+    # Check if the column contains "?"
+    if (df[column] == "?").any():
+        # Convert "?" to NaN and calculate the mean of the column
+        df[column] = df[column].replace("?", np.nan)
+        column_mean = df[column].astype(float).mean()
+        column_mean = int(column_mean)
+    # Replace NaN with the mean and round to the nearest integer
+    df[column] = df[column].fillna(column_mean)
+# Save the updated dataset to a new file
+df.to_csv('soybean_dataset_updated.csv', index=False)
 
 
+df = pd.read_csv("soybean_dataset_updated.csv", delimiter=",")
 print("\n\tTAP DU LIEU SAU KHI CHUYEN DOI\n")
 print(df)
+
 
 # y la nhan, x la cot con lai
 X = df.drop(['roots'], axis=1)
 y = df['roots']
+
+
 print("\n< ------------------------------------------------------------------------------ >")
+df.info()
 # Tinh nhãn
 print("\n<-----NHAN----->\n")
 print("array labels ", np.unique(df.roots))
 print(df.roots.value_counts(), "\n")
+
+plt.pie(df.roots.value_counts(), labels=[0, 1, 2], autopct='%1.1f%%')
+plt.axis('equal')
+plt.title("Đồ thị thể hiện phần trăm số lượng của các nhãn.")
+plt.show()
 
 print("\n< ------------------------------------------------------------------------------ >")
 
@@ -89,13 +114,17 @@ print("<-------Kiem tra voi 10 lan lap ------>")
 sum_knn = 0  # Tổng độ chính xác knn
 sum_bayes = 0  # Tổng độ chính xác bayes
 sum_tree = 0  # Tổng độ chính xác tree
+dcxknn = []
+dcxbayes = []
+dcxtree = []
 
+f1_scores = []
 for b in range(1, 11):  # kiểm tra với 10 lần lập
     print("LAN LAP ", b, "VOI random_state = ", str(b*5))
 
     # chia tập dữ liệu thành 2 phần 7 train 3 test
     x_train, x_test, y_train, y_test = train_test_split(
-        X, y, test_size=1/3.0, random_state=b*5)
+        X, y, test_size=0.3, random_state=b*5)
 
     print(" - Train:", len(x_train), "Test:", len(x_test))
 
@@ -111,13 +140,17 @@ for b in range(1, 11):  # kiểm tra với 10 lần lập
     # du doan
     dudoan_tree = cayquyetdinh.predict(x_test)
 
+    # f1_corce
+    f1_scores.append(f1_score(y_test, dudoan_tree, average='macro'))
+
     # độ chính xác tree
     ptr1 = accuracy_score(y_test, dudoan_tree)*100
     print(" - Do chính xac:", ptr1, "%")
+    dcxtree.append(round(ptr1, 3))
 
     # độ chính xác qua ma trân lỗi
     print(" - Do chinh xac tree, lan lap thu ", b, "la:\n", confusion_matrix(y_test,
-          dudoan_tree, labels=[0, 1, 2, 3]))
+          dudoan_tree, labels=[0, 1, 2]))
 
     # độ chính xác từng lớp
     print(" - Do chinh xac tung phan lop:\n",
@@ -137,6 +170,7 @@ for b in range(1, 11):  # kiểm tra với 10 lần lập
 
     # độ chính xác của bayes
     ptr2 = accuracy_score(y_test, dudoan_bayes)*100
+    dcxbayes.append(round(ptr2, 3))
 
     # <------------------------------------------------------------------------------------------------------>
 
@@ -152,6 +186,7 @@ for b in range(1, 11):  # kiểm tra với 10 lần lập
 
     # 3. tinh do chinh xac tong the knn
     ptr3 = accuracy_score(y_test, dudoan_knn)*100
+    dcxknn.append(round(ptr3, 3))
 
     # 4. do chinh xac tong the knn, bayes, tree
     sum_knn += ptr3
@@ -164,11 +199,82 @@ for b in range(1, 11):  # kiểm tra với 10 lần lập
     print("Do chinnh xac tong the knn:", round(ptr3, 3), "%")
     print("\n------------------------------>\n")
 
+lanlap = np.arange(1, 11)
 
+plt.figure(figsize=(10, 7))
+plt.bar(lanlap, f1_scores, align="center", width=0.5)
+
+
+plt.xlabel("Lần lập")
+plt.ylabel("F1")
+plt.title(
+    "Đồ thị thể hiện F1 của thuật toán tree")
+for x, y in zip(lanlap, f1_scores):
+    plt.text(x+0.02, y + 0.01, "%.2f" % y, ha="center", va="bottom")
+
+plt.show()
+
+
+# Tạo mảng chứa các điểm trên trục x
+
+# Vẽ biểu đồ đường cho từng thuật toán
+plt.figure(figsize=(15, 10))
+plt.plot(lanlap, dcxknn, label='KNN')
+plt.plot(lanlap, dcxbayes, label='BAYES')
+plt.plot(lanlap, dcxtree, label='TREE')
+for i in range(len(lanlap)):
+    plt.text(lanlap[i], dcxknn[i], f"{dcxknn[i]:.2f}%")
+    plt.text(lanlap[i], dcxbayes[i], f"{dcxbayes[i]:.2f}%")
+    plt.text(lanlap[i], dcxtree[i], f"{dcxtree[i]:.2f}%")
+# Thiết lập tiêu đề và nhãn trục cho biểu đồ
+plt.title('Đồ thị thị thể hiện độ chính xác của 3 thuật toán qua 10 lần lập.')
+plt.xlabel('X')
+plt.ylabel('Y')
+
+# Hiển thị chú thích cho biểu đồ
+plt.legend()
+
+# Hiển thị biểu đồ
+plt.show()
+
+
+# y la nhan, x la cot con lai
+X1 = df.drop(['roots'], axis=1)
+y1 = df['roots']
+
+tree_clf = DecisionTreeClassifier(max_depth=5, criterion="entropy")
+tree_clf.fit(X1, y1)
+
+plt.figure(figsize=(10, 8))
+plot_tree(tree_clf, filled=True)
+plt.show()
+
+kq = []
 # hiển thị độ chính xác trung bình(làm tròn 3 số) sau 10 lần lặp
 print("Do chinh xac tong the trung binh cua knn sau 10 lan lap la:",
       round(sum_knn/10, 3), "%")
+kq.append(round(sum_knn/10, 3))
 print("Do chinh xac tong the trung binh cua bayes sau 10 lan lap la:",
       round(sum_bayes/10, 3), "%")
+kq.append(round(sum_bayes/10, 3))
 print("Do chinh xac tong the trung binh cua tree sau 10 lan lap la:",
       round(sum_tree/10, 3), "%")
+kq.append(round(sum_tree/10, 3))
+
+
+lables = np.array(['Knn', 'Bayes', 'Tree'])
+
+in_lables = range(len(lables))
+plt.figure(figsize=(10, 7))
+plt.bar(in_lables, kq, align="center", width=0.5)
+plt.xticks(in_lables, lables)
+
+
+plt.xlabel("Thuat Toan")
+plt.ylabel("Do chinh xac (%)")
+plt.title(
+    "Đồ thị thể hiện độ chính xác trung bình tổng thể của 3 thuật toán knn, bayes, tree")
+for x, y in zip(in_lables, kq):
+    plt.text(x+0.02, y + 0.05, "%.2f%%" % y, ha="center", va="bottom")
+
+plt.show()
