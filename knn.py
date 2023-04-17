@@ -1,33 +1,26 @@
-import matplotlib.pyplot as plt
-import numpy as np
+from sklearn.tree import DecisionTreeClassifier, export_graphviz
+import graphviz
+import pandas as pd
 
-# Tạo dữ liệu giả định
-x = np.array(["Tree", "KNN", "Bayes"])  # Đối tượng của biểu đồ
-y = np.random.randint(10, size=(3, 1))  # Dữ liệu giả cho các thuật toán
+iris = pd.read_csv("soybean-update.csv")
 
-# Tạo một mảng các vị trí của các cột
-ind = np.arange(len(x))
+# Define features and labels
+X = iris.drop(["class"], axis=1)
+y = iris["class"].astype(str)  # Convert class attribute to string
 
-# Điều chỉnh độ rộng của các cột
-width = 0.2
+# Create decision tree with information gain criterion
+clf = DecisionTreeClassifier(criterion='entropy')
 
-# Vẽ biểu đồ cột
-fig, ax = plt.subplots()
-rects1 = ax.bar(ind - width, y[:, 0], width, label='Lần 1')
-rects2 = ax.bar(ind, y[:, 1], width, label='Lần 2')
-rects3 = ax.bar(ind + width, y[:, 2], width, label='Lần 3')
+# Train decision tree
+clf.fit(X, y)
 
-# Đặt tiêu đề và chú thích
-ax.set_title('Biểu đồ cột với các thuật toán')
-ax.set_xticks(ind)
-ax.set_xticklabels(x)
-ax.legend()
+# Export decision tree in DOT format
+dot_data = export_graphviz(clf, out_file=None,
+                           feature_names=X.columns.tolist(),
+                           class_names=y.unique().tolist(),  # Convert class labels to list of strings
+                           filled=True, rounded=True,
+                           special_characters=True)
 
-# Lặp lại 10 lần
-for i in range(10):
-    # Tùy chỉnh các giá trị của y ở đây
-    y = np.random.randint(10, size=(3, 3))
-    rects1.set_height(y[:, 0])
-    rects2.set_height(y[:, 1])
-    rects3.set_height(y[:, 2])
-    plt.show()
+# Draw decision tree
+graph = graphviz.Source(dot_data)
+graph.render('iris_decision_tree_entropy', format='png')
